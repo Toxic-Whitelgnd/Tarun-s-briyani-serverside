@@ -7,3 +7,5 @@
 * fastapi
 * mysql
 * re
+
+## ngrok is used to make the http to https
