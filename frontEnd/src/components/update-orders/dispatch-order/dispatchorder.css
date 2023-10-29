@@ -1,0 +1,10 @@
+.dis-home{
+    height: 500px;
+    margin-left: 20px;
+}
+.dis-h{
+
+        display: flex;
+        flex-wrap: wrap;
+
+}

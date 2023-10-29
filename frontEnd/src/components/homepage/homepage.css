@@ -1,0 +1,12 @@
+
+.home-cont{
+    height: 500px;
+    margin-left: 20px;
+}
+.progress-h{
+    display: flex;
+    flex-wrap: wrap;
+}
+.givespace{
+    margin-top: 30px;
+}
