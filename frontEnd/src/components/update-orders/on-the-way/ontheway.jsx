@@ -7,7 +7,7 @@ const Ontheway = () => {
     const [status, setStatus] = useState('Select the status');
 
     useEffect(() => {
-        fetch('http://localhost:9999/onthewayorder')
+        fetch('http://localhost:9999/on-the-way-order')
             .then(res => res.json())
             .then(data => {
                 console.log(data);
@@ -24,7 +24,7 @@ const Ontheway = () => {
             status: status,
         }
 
-        fetch('http://localhost:9999/update-orders', {
+        fetch('http://localhost:9999/update-order-req', {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json",

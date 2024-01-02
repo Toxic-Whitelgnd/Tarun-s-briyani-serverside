@@ -5,7 +5,7 @@ const Deliveredorder = () => {
     const [data, setdata] = useState([]);
 
     useEffect(() => {
-        fetch('http://localhost:9999/get-deliverd-order')
+        fetch('http://localhost:9999/get-delivered-order')
             .then(res => res.json())
             .then(data => {
                 console.log(data);

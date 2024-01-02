@@ -7,7 +7,7 @@ const Dispatchorder = () => {
     const [status, setStatus] = useState('Select the status');
 
     useEffect(() => {
-        fetch('http://localhost:9999/dispatchorder')
+        fetch('http://localhost:9999/dispatch-order')
             .then(res => res.json())
             .then(data => {
                 console.log(data);
@@ -24,7 +24,7 @@ const Dispatchorder = () => {
             status: status,
         }
 
-        fetch('http://localhost:9999/update-orders', {
+        fetch('http://localhost:9999/update-order-req', {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json",

@@ -8,7 +8,7 @@ const Processorder = () => {
     const [status, setStatus] = useState('Select the status');
 
     useEffect(() => {
-        fetch('http://localhost:9999/inprogress')
+        fetch('http://localhost:9999/progress-order')
             .then(res => res.json())
             .then(data => {
                 console.log(data);
@@ -25,7 +25,7 @@ const Processorder = () => {
             status: status,
         }
 
-        fetch('http://localhost:9999/update-orders', {
+        fetch('http://localhost:9999/update-order-req', {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json",
@@ -79,8 +79,8 @@ const Processorder = () => {
             <div>
                 <select onChange={e => setStatus(e.target.value)}>
                     <option value={null}>Select the status</option>
-                    <option key={1} value='Your order is in prepration'>Your order is in progress</option>
-                    <option key={2} value='Your order is ready yet to dispatch'>Your order is ready yet to dispatch</option>
+                    <option key={1} value='Your order is in progress'>Your order is in progress</option>
+                    <option key={2} value='Your order has been dispatched '>Your order is ready yet to dispatch</option>
                     <option key={3} value='Your order is out for delivery'>Your order is out for delivery</option>
                     <option key={4} value='your order has been delivered successfully'>your order has been delivered successfully</option>
                 </select>
