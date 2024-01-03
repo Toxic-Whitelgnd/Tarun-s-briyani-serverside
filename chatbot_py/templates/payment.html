@@ -1,0 +1,106 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>FastAPI HTML Example</title>
+</head>
+
+<body>
+    <h1>Welcome to Tarun's Briyani Paradise </h1>
+    <h3>Payment Portal for {{user_name}} of total: {{amount/100}}</h3>
+    <button id="rzp-button1">Pay with Razorpay</button>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+
+        // to handle the server callback
+        var res = {}
+        var item_id = "{{orderid}}"
+        var payment_method = "{{payment_method}}"
+        console.log(item_id , payment_method);
+
+        var options = {
+            "key": "rzp_test_AZ9LyozDGv5aSK", // Enter the Key ID generated from the Dashboard
+            "amount": "{{amount}}", // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
+            "currency": "INR",
+            "name": "Tarun's Briyani Paradise",
+            "description": "Test Transaction",
+            "image": "https://example.com/your_logo",
+            "order_id": "{{payment['id']}}", //This is a sample Order ID. Pass the `id` obtained in the response of Step 1
+            "handler": function (response) {
+                alert(response.razorpay_payment_id);
+                alert(response.razorpay_order_id);
+                alert(response.razorpay_signature)
+
+                res = {
+                    'item_id': item_id+'',
+                    'payment_method': payment_method,
+                    'order_id': response.razorpay_order_id,
+                    'payment_id': response.razorpay_payment_id,
+                    'signature': response.razorpay_signature
+                }
+
+                successful_paymentid(res);
+            },
+            "notes": {
+                "address": "Razorpay Corporate Office"
+            },
+            "theme": {
+                "color": "#5699cc"
+            }
+        };
+        var rzp1 = new Razorpay(options);
+        rzp1.on('payment.failed', function (response) {
+            alert(response.error.code);
+            alert(response.error.description);
+            alert(response.error.source);
+            alert(response.error.step);
+            alert(response.error.reason);
+            alert(response.error.metadata.order_id);
+            alert(response.error.metadata.payment_id);
+        });
+        document.getElementById('rzp-button1').onclick = function (e) {
+            rzp1.open();
+            e.preventDefault();
+        }
+
+        function successful_paymentid(payment_reciept) {
+                console.log(payment_reciept);
+                sendDataToPythonServer(payment_reciept);
+        }
+
+        function sendDataToPythonServer(payment_reciept) {
+            const jsonData = {
+                key1: "value1",
+                key2: "value2",
+                // Add more key-value pairs as needed
+            };
+
+            // Make a POST request to the Python API
+            fetch('http://localhost:8000/api/endpoint', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payment_reciept),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Response from server:', data);
+                if(data.message === "JSON data received successfully and updated successfully"){
+                    redirectToAnotherPage()
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function redirectToAnotherPage() {
+            // this will be like www.tarunsbriyaniparadise.com/cahtbot something
+            window.location.href = "https://dialogflow.cloud.google.com/#/agent/foodiechan-jllj/intents";
+        }
+    </script>
+</body>
+
+</html>

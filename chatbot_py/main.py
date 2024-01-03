@@ -1,6 +1,8 @@
-from fastapi import FastAPI , Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException , Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
 
+import httpx
 import db_helper
 import generic_helper
 import db_mongodb
@@ -8,10 +10,19 @@ import db_mongodb
 global order_total
 global order_id
 
+import razorpay
+
+# razorpay_client.set_app_details({"title" : "Tarun's Paradise Briyani", "version" : "1.5.0"})
+
 app = FastAPI()
 # to handle the orders
 inprogress_orders = {}
 inprogress_userdetails = {}
+
+# Dictionary to store payment links associated with order IDs
+order_payment_links = {}
+
+templates = Jinja2Templates(directory="templates")
 
 @app.post('/')
 async def webhook_handler(request: Request):
@@ -33,8 +44,8 @@ async def webhook_handler(request: Request):
         'user.name':get_user_name,
         'user.mobno context:ongoing-details':get_user_mobileno,
         'user.address context:ongoing-details':get_user_address,
-        # 'user.change context:ongoing-details':change_user_Details,
         'change name mob address':change_user_Details,
+        'payment.details':handle_payment_details,
     }
 
     return handle_intent_req[intent](parameter, session_id)
@@ -189,7 +200,7 @@ def change_user_Details(parameter,session_id):
             fulfilment_text = "Failed due to some technical error"
 
 
-    del inprogress_userdetails[session_id]
+    # del inprogress_userdetails[session_id]
 
     return JSONResponse(content={
         "fulfillmentText": fulfilment_text
@@ -347,6 +358,125 @@ def complete_order(parameter,session_id):
     })
 
 
+# for getting the payment details
+def handle_payment_details(parameter,session_id):
+    payment_meth = parameter['payment-method']
+    print(payment_meth[0])
+
+    if(payment_meth[0] == "cash on delivery"):
+        orderid = db_mongodb.get_order_id_mob(inprogress_userdetails[session_id])
+        res = db_mongodb.save_COD_payment_details(orderid)
+        if(res == 1):
+
+            fulfilment_text = "Thank you for choosing the Cash on Delivery"\
+                                "Your Money will be collected at the time of delivery"
+        else:
+            fulfilment_text = "Some error in Database"
+
+        return JSONResponse(content={
+        "fulfillmentText": fulfilment_text
+        })
+    
+    
+    #then other methods are redirected to razorpay payment gateway
+
+    fulfilment_text = f"Thank you for choosing the payment method : {payment_meth}"\
+                    "Your Money will be charged"
+    
+
+    try:
+        print(inprogress_userdetails)
+        name = inprogress_userdetails[session_id]['name']
+        print(name)
+        orderid = db_mongodb.get_order_id_mob(inprogress_userdetails[session_id])
+        print(orderid)
+        p_met = payment_meth[0]
+        #order id will be passed as a parameter and method of payment fro backend
+        fulfilment_text = f"http://localhost:8000/paymentgateway/{p_met}/{orderid}" \
+                            "Click or copy the above url open in your browser for payment gateway"
+              
+    except:
+        fulfilment_text = "Some error occurred while trying pls start from new order"
+
+    
+
+    return JSONResponse(content={
+        "fulfillmentText": fulfilment_text
+    })
+
+
+@app.get("/paymentgateway/{p_met}/{orderid}", response_class=HTMLResponse)
+def read_root(request: Request):
+
+    # get the orderid from the req parameter and get the basci details and put it in the data
+    item_id = request.path_params['orderid']
+    payment_meth = request.path_params['p_met']
+    print(payment_meth)
+    print("From payment gateway")
+    print(item_id)
+
+    # things to get for nxt step: totalamt , name , orderid
+    totalorderamt = db_mongodb.get_total_order(item_id)
+    uname = db_mongodb.get_name_with_orderid(item_id)
+
+
+
+    # Initialize Razorpay client
+    razorpay_client = razorpay.Client(auth=("rzp_test_AZ9LyozDGv5aSK", "k7q5Fkbd9EAoJaJ5JPl5dzrH"))
+
+    data = {
+        
+    "amount": int(totalorderamt) * 100,
+    "currency": "INR",
+    "receipt": str(uname)+"-"+str(item_id),
+    "notes": {
+        "key1": "value3",
+        "key2": "value2"
+        }
+    }
+
+    totalorderamt = totalorderamt * 100
+
+    payment = razorpay_client.order.create(data = data)
+
+    print(totalorderamt, uname , item_id , payment_meth)
+
+    # Render the HTML template using the Jinja2Templates instance
+    return templates.TemplateResponse("payment.html", {"request": request ,"payment":payment,
+                                                    "orderid": item_id ,"amount":totalorderamt
+                                                    ,"user_name":uname,"payment_method":payment_meth})
+
+@app.post("/api/endpoint")
+async def receive_json_data(json_data: dict):
+    # Process the received JSON data
+    print("Received JSON data:", json_data)
+
+    # Perform any processing or validation as needed
+    itemid = json_data["item_id"]
+    payment_method = json_data["payment_method"]
+    order_id = json_data["order_id"]
+    payment_id = json_data["payment_id"]
+    signature = json_data["signature"]
+
+    print(itemid , payment_method , order_id , signature , payment_id)
+
+   
+    try:
+        res = db_mongodb.save_payment_details(item_id=itemid, payment_id=payment_id,paid_method=payment_method,
+                                        order_id=order_id,signature=signature)
+        print(res)
+        if (res == 1):
+            return {"message": "JSON data received successfully and updated successfully"}
+        else:
+            return {"message": "Some error occurred while updating in db"
+                    }
+    except:
+             return {"message": "Error in Database"
+                    }
+   
+    
+
+
 # iMPORTANT PART TO SAVING THE ORDER IN db
 def save_to_db(order: dict):
     # get the new order id
@@ -377,6 +507,7 @@ def save_to_db(order: dict):
 
 
 
+#TODO: Integrate this payment gateway in the chatbot
 # f"you can say CHANGE details or else no! \n" \
 #                               "we can proceed with payment option" '\n' \
 #                               "1. Cash on delivery \n" \

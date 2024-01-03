@@ -150,6 +150,28 @@ def get_order_id(user_name):
     
     return orderid
 
+def get_name_with_orderid(orderid):
+    res = user_details_col.find({'order_id':str(orderid)})
+    
+    name = ''
+    for i in res:
+        print(i)
+        name += i.get('username') 
+    
+    return name
+
+def get_order_id_mob(mobileno):
+    print(mobileno['mobileno'])
+    usr = mobileno['mobileno']
+    res = user_details_col.find({'mobileno':str(usr)})
+    
+    orderid = ''
+    for i in res:
+        print(i)
+        orderid += i.get('order_id') 
+    
+    return orderid
+
 def get_order_status(orderid :int):
     res = order_tracking.find({"order_id":str(orderid)})
     status = ''
@@ -185,6 +207,37 @@ def get_delivery_boy():
     print(d_d)
     return d_d
 
+
+def save_payment_details(item_id,order_id,payment_id,signature,paid_method):
+    print("Inside the payment details")
+    update_query = {"order_id": str(item_id)}
+    update_values = {"$set": { "paid_by": paid_method,"paid_status": "Paid",
+        "payment_id": payment_id,"payment_order_id": order_id,"signature": signature}}
+
+    s = orders.update_one(update_query,update_values)
+    
+    print(s.matched_count)
+    try:
+        s = orders.update_one(update_query,update_values)
+        if(s.matched_count == 1):
+            return 1
+    except:
+        return 0
+
+def save_COD_payment_details(item_id):
+    print("Inside the payment details")
+    update_query = {"order_id": str(item_id)}
+    update_values = {"$set": {"paid_status": "unpaid","paid_by":"cash on delivery"}}
+
+    s = orders.update_one(update_query,update_values)
+    
+    print(s.matched_count)
+    try:
+        s = orders.update_one(update_query,update_values)
+        if(s.matched_count == 1):
+            return 1
+    except:
+        return 0
 
 
 # ------------------------------INSERT OPERATION AND TESTING --------------------------------------
