@@ -239,6 +239,19 @@ def save_COD_payment_details(item_id):
     except:
         return 0
 
+def get_payment_details(orderid):
+    print(str(int(orderid)))
+    print("Inside the payment details page to get the details of the order")
+    res = orders.find({"order_id":str(int(orderid))})
+    print(res)
+    payment_det = {}
+    for i in res:
+        payment_det['paid_by'] = i.get('paid_by')
+        payment_det['status'] = i.get('paid_status')
+        payment_det['reciept'] = i.get('payment_id')
+
+    print(payment_det)
+    return payment_det
 
 # ------------------------------INSERT OPERATION AND TESTING --------------------------------------
 

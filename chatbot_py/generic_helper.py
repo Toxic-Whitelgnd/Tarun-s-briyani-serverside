@@ -12,32 +12,10 @@ def extract_str(food_dict: dict):
     return ', '.join([f"{int(value)} {key} " for key,value in food_dict.items()])
 
 
-'''
-python
-import requests
+def get_cart_word(my_string):
+    pattern = r'\bcart\b'
 
-url = "https://api.razorpay.com/v1/payment_links"
-headers = {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer YOUR_API_KEY"
-}
-data = {
-    "amount": 1000,
-    "currency": "INR",
-    "description": "Payment for Order #123",
-    "customer": {
-        "name": "John Doe",
-        "email": "john.doe@example.com",
-        "contact": "+919876543210"
-    },
-    "notify": {
-        "sms": True,
-        "email": True
-    }
-}
-
-response = requests.post(url, headers=headers, json=data)
-payment_link = response.json()
-
-print("Payment Link URL:", payment_link["short_url"])
-'''
+    if re.search(pattern, my_string):
+        return 1
+    else:
+        return 0

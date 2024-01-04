@@ -46,9 +46,37 @@ async def webhook_handler(request: Request):
         'user.address context:ongoing-details':get_user_address,
         'change name mob address':change_user_Details,
         'payment.details':handle_payment_details,
+        'payment details ongoing:payment':get_payment_details,
+        'my cart':get_cart_item,
     }
 
     return handle_intent_req[intent](parameter, session_id)
+
+
+def get_cart_item(parameter,session_id):
+    cartkey = parameter["cartitems"]
+
+    res = generic_helper.get_cart_word(cartkey)
+    if(res == 1):
+        # call the inprogress orders
+        #and show the avilable order
+        
+        your_cart = ""
+
+        print(inprogress_orders[session_id])
+        for i in inprogress_orders[session_id].keys():
+            print(i)
+            your_cart += i
+            
+        print(i)
+        fulfilment_text = f"Your Cart : {inprogress_orders[session_id]}"
+        
+    else:
+        fulfilment_text = "Error while fetching the details"
+    return JSONResponse(content={
+        "fulfillmentText": fulfilment_text
+    })
+
 
 def get_user_address(parameter,session_id):
     zipcode = parameter['zip-code']
@@ -473,8 +501,34 @@ async def receive_json_data(json_data: dict):
     except:
              return {"message": "Error in Database"
                     }
-   
     
+
+@app.get("/api/successfulendpoint")
+async def successful_page(request: Request):
+     return templates.TemplateResponse("successful.html", {"request": request })
+   
+@app.get("/api/failurendpoint")
+async def failure_page(request: Request):
+    return templates.TemplateResponse("failure.html", {"request":request})
+    
+
+def get_payment_details(parameter,session_id):
+    orderid = parameter["number"]
+    fullfilment_text = "Can't fetch due to some technical issues"
+    try:
+        res = db_mongodb.get_payment_details(orderid)
+        status = res['status']
+        paid_by = res['paid_by']
+        reciept = res['reciept']
+        fullfilment_text = f"Your Orderid:{int(orderid)}, status:{status}, paid_by:{paid_by}, reciept:{reciept}"\
+                            "Thank you for your order"
+    except:
+        fullfilment_text = "Error fetching payment details"
+
+    return JSONResponse(content={
+        "fulfillmentText": fullfilment_text
+    })
+
 
 
 # iMPORTANT PART TO SAVING THE ORDER IN db
@@ -505,13 +559,3 @@ def save_to_db(order: dict):
 
     return nxt_order_id
 
-
-
-#TODO: Integrate this payment gateway in the chatbot
-# f"you can say CHANGE details or else no! \n" \
-#                               "we can proceed with payment option" '\n' \
-#                               "1. Cash on delivery \n" \
-#                               "2. Credit card \n" \
-#                               "3. Upi option \n" \
-#                               "4. Debit card \n" \
-#                               "5. Net banking \n" \
